@@ -45,8 +45,17 @@ export default function Layout() {
 
             <div className="nav-divider" />
 
-            {/* Public user session */}
-            {userSession ? (
+            {adminSession ? (
+              <>
+                <NavLink to="/admin" onClick={close} className="btn btn-ghost btn-sm">
+                  <Lock width={14} height={14} /> Admin Dashboard
+                </NavLink>
+                <button className="btn btn-ghost btn-sm" onClick={() => { adminSignOut(); close() }}
+                  style={{ color: 'var(--n600)' }}>
+                  <LogOut width={14} height={14} /> Admin out
+                </button>
+              </>
+            ) : userSession ? (
               <>
                 <NavLink to="/profile" onClick={close}
                   className={({ isActive }) => `btn btn-ghost btn-sm${isActive ? ' active' : ''}`}
@@ -62,26 +71,17 @@ export default function Layout() {
                 </button>
               </>
             ) : (
-              <NavLink to="/login" onClick={close}
-                className="btn btn-secondary btn-sm"
-                style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <User width={14} height={14} /> Login
-              </NavLink>
-            )}
-
-            {/* Admin access */}
-            {adminSession ? (
               <>
-                <NavLink to="/admin" onClick={close} className="btn btn-ghost btn-sm">Dashboard</NavLink>
-                <button className="btn btn-ghost btn-sm" onClick={() => { adminSignOut(); close() }}>
-                  <LogOut width={14} height={14} /> Admin out
-                </button>
+                <NavLink to="/login" onClick={close}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <User width={14} height={14} /> User Login
+                </NavLink>
+                <NavLink to="/admin/login" onClick={close}
+                  className="btn btn-primary btn-sm" style={{ marginLeft: 4 }}>
+                  <Lock width={14} height={14} /> Admin Login
+                </NavLink>
               </>
-            ) : (
-              <NavLink to="/admin/login" onClick={close}
-                className="btn btn-primary btn-sm" style={{ marginLeft: 4 }}>
-                <Lock width={14} height={14} /> Admin
-              </NavLink>
             )}
           </nav>
         </div>
@@ -122,7 +122,7 @@ export default function Layout() {
           </div>
           <div className="footer-bottom">
             <span>© {new Date().getFullYear()} Aegis MedTech Systems — Academic Cybersecurity Project</span>
-            <span className="mono"></span>
+            <span className="mono">Fictional entity · Educational use only</span>
           </div>
         </div>
       </footer>
