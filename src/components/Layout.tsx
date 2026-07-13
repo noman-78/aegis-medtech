@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Outlet, NavLink, Link, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Outlet, NavLink, Link, useLocation, useNavigate } from 'react-router-dom'
 import { Shield, Menu, LogOut, Lock, User } from './icons'
 import { useAuth } from '../lib/auth'
 import { useUserAuth } from '../lib/userAuth'
@@ -18,11 +18,30 @@ export default function Layout() {
   const { session: adminSession, signOut: adminSignOut } = useAuth()
   const { session: userSession, userProfile, signOut: userSignOut } = useUserAuth()
   const location = useLocation()
-  const isAdmin = location.pathname.startsWith('/admin') && location.pathname !== '/admin/login'
+  const navigate = useNavigate()
 
-  if (isAdmin) return <Outlet />
+  // Strict Admin route detection
+  const isAdminRoute = location.pathname.startsWith('/admin') && location.pathname !== '/admin/login'
+
+  // If inside admin dashboard, strictly bypass standard layout
+  if (isAdminRoute) {
+    return <Outlet />
+  }
 
   const close = () => setOpen(false)
+
+  // Custom Sign Out Handlers to clear stuck tokens
+  const handleAdminSignOut = async () => {
+    await adminSignOut()
+    close()
+    window.location.href = '/admin/login' // Hard refresh to reset memory state
+  }
+
+  const handleUserSignOut = async () => {
+    await userSignOut()
+    close()
+    window.location.href = '/login' // Hard refresh to clear user memory state
+  }
 
   return (
     <>
@@ -45,13 +64,13 @@ export default function Layout() {
 
             <div className="nav-divider" />
 
+            {/* Strict Conditional Logic: Admin takes precedence, then user, then guest */}
             {adminSession ? (
               <>
-                <NavLink to="/admin" onClick={close} className="btn btn-ghost btn-sm">
-                  <Lock width={14} height={14} /> Admin Dashboard
+                <NavLink to="/admin" onClick={close} className="btn btn-ghost btn-sm" style={{ color: 'var(--p600)', fontWeight: 'bold' }}>
+                  Dashboard
                 </NavLink>
-                <button className="btn btn-ghost btn-sm" onClick={() => { adminSignOut(); close() }}
-                  style={{ color: 'var(--n600)' }}>
+                <button className="btn btn-ghost btn-sm" onClick={handleAdminSignOut}>
                   <LogOut width={14} height={14} /> Admin out
                 </button>
               </>
@@ -65,8 +84,7 @@ export default function Layout() {
                   </span>
                   {userProfile?.full_name?.split(' ')[0] ?? 'Profile'}
                 </NavLink>
-                <button className="btn btn-ghost btn-sm" onClick={() => { userSignOut(); close() }}
-                  style={{ color: 'var(--n600)' }}>
+                <button className="btn btn-ghost btn-sm" onClick={handleUserSignOut} style={{ color: 'var(--n600)' }}>
                   <LogOut width={14} height={14} /> Sign out
                 </button>
               </>
@@ -75,11 +93,12 @@ export default function Layout() {
                 <NavLink to="/login" onClick={close}
                   className="btn btn-secondary btn-sm"
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <User width={14} height={14} /> User Login
+                  <User width={14} height={14} /> Login
                 </NavLink>
+                
                 <NavLink to="/admin/login" onClick={close}
                   className="btn btn-primary btn-sm" style={{ marginLeft: 4 }}>
-                  <Lock width={14} height={14} /> Admin Login
+                  <Lock width={14} height={14} /> Admin
                 </NavLink>
               </>
             )}
@@ -122,7 +141,7 @@ export default function Layout() {
           </div>
           <div className="footer-bottom">
             <span>© {new Date().getFullYear()} Aegis MedTech Systems — Academic Cybersecurity Project</span>
-            <span className="mono">Fictional entity · Educational use only</span>
+            <span className="mono"></span>
           </div>
         </div>
       </footer>
