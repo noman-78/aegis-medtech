@@ -5,6 +5,19 @@ import { useUserAuth } from '../lib/userAuth'
 import { supabase } from '../lib/supabase'
 import { sanitizeText, validateName } from '../lib/validation'
 
+function formatDate(val: string | null | undefined) {
+  if (!val) return 'N/A'
+  const d = new Date(val)
+  return isNaN(d.getTime()) ? 'N/A' : d.toLocaleString()
+}
+
+function formatMember(val: string | null | undefined) {
+  if (!val) return ''
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+}
+
 export default function UserProfile() {
   const { session, userProfile, loading, signOut, refreshProfile } = useUserAuth()
   const [editing, setEditing] = useState(false)
@@ -14,6 +27,7 @@ export default function UserProfile() {
   const [bioErr, setBioErr] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveErr, setSaveErr] = useState<string | null>(null)
 
   useEffect(() => {
     if (userProfile) {
@@ -25,62 +39,94 @@ export default function UserProfile() {
   if (loading) return <div className="loading"><div className="spinner" /></div>
   if (!session) return <Navigate to="/login" replace />
 
-  const startEdit = () => { setSaved(false); setEditing(true) }
+  const startEdit = () => { setSaved(false); setSaveErr(null); setEditing(true) }
 
   const cancelEdit = () => {
     setEditing(false)
     setFullName(userProfile?.full_name ?? '')
     setBio(userProfile?.bio ?? '')
-    setNameErr(null); setBioErr(null)
+    setNameErr(null)
+    setBioErr(null)
+    setSaveErr(null)
   }
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault()
-    setNameErr(null); setBioErr(null)
-    const nr = validateName(fullName); if (!nr.valid) { setNameErr(nr.error!); return }
+    setNameErr(null)
+    setBioErr(null)
+    setSaveErr(null)
+
+    const nr = validateName(fullName)
+    if (!nr.valid) { setNameErr(nr.error!); return }
     if (bio.length > 500) { setBioErr('Bio must be 500 characters or fewer.'); return }
 
     setSaving(true)
     try {
-      const { error } = await supabase.from('user_profiles').update({
-        full_name: sanitizeText(fullName),
-        bio: bio ? sanitizeText(bio) : null,
-        updated_at: new Date().toISOString(),
-      }).eq('id', session.user.id)
+      const now = new Date().toISOString()
+      const cleanName = sanitizeText(fullName)
+      const cleanBio = bio.trim() ? sanitizeText(bio) : null
+
+      const { data: updated, error } = await supabase
+        .from('user_profiles')
+        .update({
+          full_name: cleanName,
+          bio: cleanBio,
+          updated_at: now,
+        })
+        .eq('id', session.user.id)
+        .select()
+        .maybeSingle()
+
       if (error) throw error
-      await refreshProfile()
+
+      // Update local state immediately from DB response
+      if (updated) {
+        // userProfile context will update via refreshProfile, but also set
+        // local input state so view mode shows correct values right away
+        await refreshProfile(session.user.id)
+      }
       setEditing(false)
       setSaved(true)
+    } catch (err) {
+      setSaveErr(err instanceof Error ? err.message : 'Save failed. Please try again.')
     } finally {
       setSaving(false)
     }
   }
 
-  const initials = (userProfile?.full_name ?? userProfile?.email ?? 'U')
-    .split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+  const displayName = userProfile?.full_name ?? ''
+  const initials = displayName
+    ? displayName.split(' ').filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2)
+    : (userProfile?.email ?? 'U')[0].toUpperCase()
 
   return (
     <div className="fade" style={{ minHeight: 'calc(100vh - 64px)', background: 'var(--n100)', padding: '48px 24px' }}>
       <div style={{ maxWidth: 640, margin: '0 auto' }}>
+
+        {/* Header */}
         <div className="card mb-24" style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
           <div style={{
             width: 64, height: 64, borderRadius: '50%', flexShrink: 0,
             background: 'linear-gradient(135deg, var(--p600), var(--a600))',
             display: 'grid', placeItems: 'center', color: '#fff',
             fontWeight: 800, fontSize: '1.4rem', letterSpacing: '.02em',
-          }}>{initials}</div>
+          }}>
+            {initials}
+          </div>
           <div style={{ flex: 1 }}>
-            <h2 style={{ marginBottom: 4 }}>{userProfile?.full_name ?? 'Welcome!'}</h2>
+            <h2 style={{ marginBottom: 4 }}>
+              {displayName || <span style={{ color: 'var(--n400)', fontWeight: 500, fontSize: '1.1rem' }}>No name set</span>}
+            </h2>
             <p className="muted" style={{ fontSize: '.88rem', margin: 0 }}>{userProfile?.email}</p>
-            <p className="muted" style={{ fontSize: '.78rem', margin: '4px 0 0' }}>
-              Member since {new Date(userProfile?.created_at ?? '').toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
-            </p>
+            {userProfile?.created_at && (
+              <p className="muted" style={{ fontSize: '.78rem', margin: '4px 0 0' }}>
+                Member since {formatMember(userProfile.created_at)}
+              </p>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {!editing && (
-              <button className="btn btn-secondary btn-sm" onClick={startEdit}>
-                Edit profile
-              </button>
+              <button className="btn btn-secondary btn-sm" onClick={startEdit}>Edit profile</button>
             )}
             <button className="btn btn-ghost btn-sm" onClick={signOut} style={{ color: 'var(--r600)' }}>
               <LogOut width={14} height={14} /> Sign out
@@ -93,7 +139,9 @@ export default function UserProfile() {
             <div className="row"><Check width={15} height={15} /> Profile updated successfully.</div>
           </div>
         )}
+        {saveErr && <div className="form-error mb-16">{saveErr}</div>}
 
+        {/* Edit form */}
         {editing ? (
           <div className="card mb-24">
             <h3 style={{ marginBottom: 18 }}>Edit Profile</h3>
@@ -106,6 +154,8 @@ export default function UserProfile() {
                   value={fullName}
                   onChange={e => { setFullName(e.target.value); setNameErr(null) }}
                   maxLength={120} autoComplete="name"
+                  placeholder="Your full name"
+                  autoFocus
                 />
                 {nameErr && <div className="ferr">{nameErr}</div>}
               </div>
@@ -131,35 +181,41 @@ export default function UserProfile() {
             </form>
           </div>
         ) : (
+          /* View */
           <div className="card mb-24">
             <div className="row mb-16">
               <div className="card-icon" style={{ marginBottom: 0 }}><User /></div>
               <h3 style={{ margin: 0 }}>Your Profile</h3>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <span className="muted" style={{ fontSize: '.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>Full name</span>
-                <p style={{ margin: '4px 0 0', fontWeight: 500 }}>{userProfile?.full_name ?? <span className="muted">Not set</span>}</p>
+                <p className="muted" style={{ fontSize: '.76rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Full name</p>
+                <p style={{ margin: 0, fontWeight: 500, color: userProfile?.full_name ? 'var(--n900)' : 'var(--n400)', fontStyle: userProfile?.full_name ? 'normal' : 'italic' }}>
+                  {userProfile?.full_name || 'Not set — click Edit profile to add your name'}
+                </p>
               </div>
               <div>
-                <span className="muted" style={{ fontSize: '.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>Email</span>
-                <p style={{ margin: '4px 0 0' }}>{userProfile?.email}</p>
+                <p className="muted" style={{ fontSize: '.76rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Email</p>
+                <p style={{ margin: 0 }}>{userProfile?.email}</p>
               </div>
               {userProfile?.bio && (
                 <div>
-                  <span className="muted" style={{ fontSize: '.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>Bio</span>
-                  <p style={{ margin: '4px 0 0' }}>{userProfile.bio}</p>
+                  <p className="muted" style={{ fontSize: '.76rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Bio</p>
+                  <p style={{ margin: 0 }}>{userProfile.bio}</p>
                 </div>
               )}
               <div>
-                <span className="muted" style={{ fontSize: '.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>Last updated</span>
-                <p style={{ margin: '4px 0 0', fontSize: '.88rem', color: 'var(--n500)' }}>{new Date(userProfile?.updated_at ?? '').toLocaleString()}</p>
+                <p className="muted" style={{ fontSize: '.76rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Last updated</p>
+                <p style={{ margin: 0, fontSize: '.88rem', color: 'var(--n500)' }}>
+                  {formatDate(userProfile?.updated_at)}
+                </p>
               </div>
             </div>
           </div>
         )}
 
-        <div className="card" style={{ border: '1px solid var(--n200)' }}>
+        {/* Security */}
+        <div className="card">
           <div className="row mb-12">
             <div className="card-icon" style={{ marginBottom: 0, background: '#dcfce7', color: 'var(--g600)' }}><ShieldCheck /></div>
             <h3 style={{ margin: 0 }}>Account security</h3>
@@ -178,6 +234,7 @@ export default function UserProfile() {
             ))}
           </div>
         </div>
+
       </div>
     </div>
   )
