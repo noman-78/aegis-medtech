@@ -122,7 +122,7 @@ export default function Layout() {
           </div>
           <div className="footer-bottom">
             <span>© {new Date().getFullYear()} Aegis MedTech Systems — Academic Cybersecurity Project</span>
-            <span className="mono">Fictional entity · Educational use only</span>
+            <span className="mono"></span>
           </div>
         </div>
       </footer>

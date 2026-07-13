@@ -19,7 +19,7 @@ function passwordStrength(pw: string): { score: number; label: string; color: st
 }
 
 export default function UserLogin() {
-  const { session, userProfile, signIn, signUp } = useUserAuth()
+  const { session, signIn, signUp } = useUserAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const defaultMode = params.get('mode') === 'register' ? 'register' : 'login'
@@ -31,12 +31,11 @@ export default function UserLogin() {
   const [showPw, setShowPw] = useState(false)
   const [errors, setErrors] = useState<{ fullName?: string; email?: string; password?: string }>({})
   const [formErr, setFormErr] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (session && userProfile) navigate('/profile', { replace: true })
-  }, [session, userProfile, navigate])
+    if (session) navigate('/profile', { replace: true })
+  }, [session]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const clearErrors = () => { setErrors({}); setFormErr(null) }
 
@@ -56,11 +55,12 @@ export default function UserLogin() {
     try {
       if (mode === 'login') {
         const { error } = await signIn(sanitizeText(email), password)
-        if (error) setFormErr('Invalid email or password.')
+        if (error) { setFormErr('Invalid email or password.'); return }
+        navigate('/profile', { replace: true })
       } else {
         const { error } = await signUp(sanitizeText(email), password, sanitizeText(fullName))
         if (error) { setFormErr(error); return }
-        setSuccess('Account created! Your password is stored as a bcrypt hash. You are now signed in.')
+        navigate('/profile', { replace: true })
       }
     } finally {
       setBusy(false)
@@ -83,8 +83,6 @@ export default function UserLogin() {
         </p>
 
         {formErr && <div className="form-error">{formErr}</div>}
-        {success && <div className="form-success">{success}</div>}
-
         <form onSubmit={handleSubmit} noValidate>
           {mode === 'register' && (
             <div className="field">
@@ -156,11 +154,11 @@ export default function UserLogin() {
         <div style={{ marginTop: 16, textAlign: 'center', fontSize: '.88rem' }}>
           {mode === 'login' ? (
             <span className="muted">No account?{' '}
-              <button className="btn btn-ghost btn-sm" onClick={() => { setMode('register'); clearErrors(); setSuccess(null) }}>Register free</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setMode('register'); clearErrors() }}>Register free</button>
             </span>
           ) : (
             <span className="muted">Already have an account?{' '}
-              <button className="btn btn-ghost btn-sm" onClick={() => { setMode('login'); clearErrors(); setSuccess(null) }}>Sign in</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setMode('login'); clearErrors() }}>Sign in</button>
             </span>
           )}
         </div>
