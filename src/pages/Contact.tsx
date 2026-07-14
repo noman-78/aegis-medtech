@@ -30,7 +30,7 @@ export default function Contact() {
     return Object.keys(e).length === 0
   }
 
-  const handleSubmit = async (e: FormEvent) => {
+      const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setSubmitErr(null)
     if (!validate()) return

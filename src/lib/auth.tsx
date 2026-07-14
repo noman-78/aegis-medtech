@@ -20,7 +20,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const loadProfile = async (uid: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle()
+    const { data } = await supabase
+  .from('user_profiles')
+  .select('*')
+  .eq('id', uid)
+  .maybeSingle()
     setProfile(data as Profile | null)
   }
 
@@ -48,10 +52,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error: error ? error.message : null }
+const signIn = async (email: string, password: string) => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  })
+
+  if (error) {
+    return { error: error.message }
   }
+
+  if (data.user) {
+    await loadProfile(data.user.id)
+  }
+
+  return { error: null }
+}
 
   const signUp = async (email: string, password: string) => {
     const { error } = await supabase.auth.signUp({ email, password })

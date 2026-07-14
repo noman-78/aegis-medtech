@@ -180,9 +180,7 @@ export default function UserLogin() {
 
         <div style={{ marginTop: 20, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
           <Link to="/" className="muted" style={{ fontSize: '.82rem' }}>← Back to website</Link>
-          <Link to="/admin/login" className="muted" style={{ fontSize: '.82rem', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <User width={12} height={12} /> Admin login
-          </Link>
+           
         </div>
       </div>
     </div>

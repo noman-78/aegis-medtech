@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Outlet, NavLink, Link, useLocation, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Outlet, NavLink, Link, useLocation } from 'react-router-dom'
 import { Shield, Menu, LogOut, Lock, User } from './icons'
 import { useAuth } from '../lib/auth'
 import { useUserAuth } from '../lib/userAuth'
@@ -15,112 +15,209 @@ const navLinks = [
 
 export default function Layout() {
   const [open, setOpen] = useState(false)
-  const { session: adminSession, signOut: adminSignOut } = useAuth()
+
+  const { profile, signOut: adminSignOut } = useAuth()
   const { session: userSession, userProfile, signOut: userSignOut } = useUserAuth()
+
   const location = useLocation()
-  const navigate = useNavigate()
 
-  // Strict Admin route detection
-  const isAdminRoute = location.pathname.startsWith('/admin') && location.pathname !== '/admin/login'
+  const isAdmin = profile?.role === 'admin'
 
-  // If inside admin dashboard, strictly bypass standard layout
+  const isAdminRoute =
+    location.pathname.startsWith('/admin/') &&
+    location.pathname !== '/admin/login'
+
   if (isAdminRoute) {
     return <Outlet />
   }
 
   const close = () => setOpen(false)
 
-  // Custom Sign Out Handlers to clear stuck tokens
   const handleAdminSignOut = async () => {
     await adminSignOut()
     close()
-    window.location.href = '/admin/login' // Hard refresh to reset memory state
+    window.location.href = '/admin/login'
   }
 
   const handleUserSignOut = async () => {
     await userSignOut()
     close()
-    window.location.href = '/login' // Hard refresh to clear user memory state
+    window.location.href = '/login'
   }
 
   return (
     <>
       <header className="site-header">
         <div className="container header-inner">
+
           <Link to="/" className="brand" onClick={close}>
-            <span className="brand-mark"><Shield width={17} height={17} /></span>
+            <span className="brand-mark">
+              <Shield width={17} height={17} />
+            </span>
             Aegis MedTech
           </Link>
-          <button className="nav-toggle" aria-label="Toggle menu" aria-expanded={open} onClick={() => setOpen(v => !v)}>
+
+          <button
+            className="nav-toggle"
+            aria-label="Toggle menu"
+            aria-expanded={open}
+            onClick={() => setOpen(v => !v)}
+          >
             <Menu width={22} height={22} />
           </button>
+
           <nav className={`nav${open ? ' open' : ''}`}>
+
             {navLinks.map(l => (
-              <NavLink key={l.to} to={l.to} end={l.end} onClick={close}
-                className={({ isActive }) => isActive ? 'active' : ''}>
+              <NavLink
+                key={l.to}
+                to={l.to}
+                end={l.end}
+                onClick={close}
+                className={({isActive}) =>
+                  isActive ? 'active' : ''
+                }
+              >
                 {l.label}
               </NavLink>
             ))}
 
             <div className="nav-divider" />
 
-            {/* Strict Conditional Logic: Admin takes precedence, then user, then guest */}
-            {adminSession ? (
+
+            {isAdmin ? (
+
               <>
-                <NavLink to="/admin" onClick={close} className="btn btn-ghost btn-sm" style={{ color: 'var(--p600)', fontWeight: 'bold' }}>
+                <NavLink
+                  to="/admin"
+                  onClick={close}
+                  className="btn btn-ghost btn-sm"
+                >
+                  <Lock width={14} height={14}/>
                   Dashboard
                 </NavLink>
-                <button className="btn btn-ghost btn-sm" onClick={handleAdminSignOut}>
-                  <LogOut width={14} height={14} /> Admin out
+
+
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={handleAdminSignOut}
+                >
+                  <LogOut width={14} height={14}/>
+                  Admin out
                 </button>
               </>
+
+
             ) : userSession ? (
+
               <>
-                <NavLink to="/profile" onClick={close}
-                  className={({ isActive }) => `btn btn-ghost btn-sm${isActive ? ' active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--p600)', color: '#fff', display: 'grid', placeItems: 'center', fontSize: '.7rem', fontWeight: 700, flexShrink: 0 }}>
-                    {(userProfile?.full_name ?? userProfile?.email ?? 'U')[0].toUpperCase()}
+
+                <NavLink
+                  to="/profile"
+                  onClick={close}
+                  className="btn btn-ghost btn-sm"
+                  style={{
+                    display:'flex',
+                    alignItems:'center',
+                    gap:6
+                  }}
+                >
+
+                  <span
+                    style={{
+                      width:22,
+                      height:22,
+                      borderRadius:'50%',
+                      background:'var(--p600)',
+                      color:'#fff',
+                      display:'grid',
+                      placeItems:'center',
+                      fontSize:'.7rem',
+                      fontWeight:700
+                    }}
+                  >
+                    {(userProfile?.full_name ?? 'U')[0].toUpperCase()}
                   </span>
+
                   {userProfile?.full_name?.split(' ')[0] ?? 'Profile'}
+
                 </NavLink>
-                <button className="btn btn-ghost btn-sm" onClick={handleUserSignOut} style={{ color: 'var(--n600)' }}>
-                  <LogOut width={14} height={14} /> Sign out
+
+
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={handleUserSignOut}
+                >
+                  <LogOut width={14} height={14}/>
+                  Sign out
                 </button>
+
               </>
+
+
             ) : (
+
               <>
-                <NavLink to="/login" onClick={close}
+
+                <NavLink
+                  to="/login"
+                  onClick={close}
                   className="btn btn-secondary btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <User width={14} height={14} /> Login
+                >
+                  <User width={14} height={14}/>
+                  Login
                 </NavLink>
+
+
                 
-                <NavLink to="/admin/login" onClick={close}
-                  className="btn btn-primary btn-sm" style={{ marginLeft: 4 }}>
-                  <Lock width={14} height={14} /> Admin
-                </NavLink>
               </>
+
             )}
+
           </nav>
+
         </div>
       </header>
 
-      <main><Outlet /></main>
+
+      <main>
+        <Outlet />
+      </main>
+
 
       <footer className="site-footer">
         <div className="container">
+
           <div className="footer-grid">
+
             <div>
-              <div className="brand" style={{ color: '#fff', marginBottom: 12 }}>
-                <span className="brand-mark"><Shield width={17} height={17} /></span>
+              <div
+                className="brand"
+                style={{
+                  color:'#fff',
+                  marginBottom:12
+                }}
+              >
+                <span className="brand-mark">
+                  <Shield width={17} height={17}/>
+                </span>
                 Aegis MedTech Systems
               </div>
-              <p style={{ color: 'var(--n400)', maxWidth: 340, fontSize: '.88rem' }}>
-                Secure healthcare technology infrastructure. An academic cybersecurity project
-                demonstrating defense-in-depth security architecture.
+
+              <p
+                style={{
+                  color:'var(--n400)',
+                  maxWidth:340,
+                  fontSize:'.88rem'
+                }}
+              >
+                Secure healthcare technology infrastructure.
+                An academic cybersecurity project demonstrating
+                defense-in-depth security architecture.
               </p>
             </div>
+
+
             <div>
               <h4>Company</h4>
               <div className="footer-links">
@@ -129,22 +226,31 @@ export default function Layout() {
                 <Link to="/risk">Risk Assessment</Link>
               </div>
             </div>
+
+
             <div>
               <h4>Account</h4>
               <div className="footer-links">
                 <Link to="/login">User Login</Link>
                 <Link to="/solutions">Security Solutions</Link>
                 <Link to="/contact">Contact</Link>
-                <Link to="/admin/login">Admin Login</Link>
+                
               </div>
             </div>
+
           </div>
+
+
           <div className="footer-bottom">
-            <span>© {new Date().getFullYear()} Aegis MedTech Systems — Academic Cybersecurity Project</span>
-            <span className="mono"></span>
+            <span>
+              © {new Date().getFullYear()} Aegis MedTech Systems — Academic Cybersecurity Project
+            </span>
           </div>
+
+
         </div>
       </footer>
+
     </>
   )
-}
+}               
