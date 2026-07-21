@@ -177,3 +177,72 @@ tbody tr:hover{background:var(--n50)}
 /* Password strength meter */
 .pw-strength{height:6px;border-radius:3px;background:var(--n200);overflow:hidden;margin-top:6px}
 .pw-strength-bar{height:100%;border-radius:3px;transition:width .3s,background-color .3s}
+
+
+.popup-overlay{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.65);
+display:flex;
+justify-content:center;
+align-items:center;
+z-index:9999;
+animation:fade .35s;
+}
+
+.popup-box{
+width:550px;
+max-width:92%;
+background:#fff;
+border-radius:16px;
+padding:35px;
+text-align:center;
+box-shadow:0 20px 60px rgba(0,0,0,.25);
+animation:pop .35s;
+}
+
+.popup-icon{
+font-size:55px;
+margin-bottom:15px;
+}
+
+.popup-box h2{
+margin-bottom:15px;
+}
+
+.popup-box p{
+line-height:1.7;
+color:#555;
+}
+
+.popup-warning{
+margin-top:20px;
+background:#fff3cd;
+padding:12px;
+border-radius:8px;
+font-weight:600;
+}
+
+.popup-buttons{
+margin-top:30px;
+display:flex;
+justify-content:center;
+gap:15px;
+flex-wrap:wrap;
+}
+
+@keyframes fade{
+from{opacity:0;}
+to{opacity:1;}
+}
+
+@keyframes pop{
+from{
+opacity:0;
+transform:scale(.85);
+}
+to{
+opacity:1;
+transform:scale(1);
+}
+}

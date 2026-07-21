@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ShieldCheck, Lock, Server, Activity, Database, Fingerprint } from '../components/icons'
-
+import CyberSecurityPopup from "../components/CyberSecurityPopup";
 const pillars = [
   { icon: Lock, title: 'Confidentiality', text: 'End-to-end encryption protects health information at rest and in transit using AES-256 and TLS 1.3.' },
   { icon: Activity, title: 'Integrity', text: 'Tamper-evident logging and integrity monitoring detect unauthorized changes to clinical data.' },
@@ -16,6 +16,8 @@ const stats = [
 
 export default function Home() {
   return (
+     <>
+      <CyberSecurityPopup />
     <div className="fade">
       <section className="hero">
         <div className="container">
@@ -97,5 +99,6 @@ export default function Home() {
         </div>
       </section>
     </div>
+  </>
   )
 }

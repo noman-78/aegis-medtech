@@ -11,7 +11,7 @@ import UserProfile from './pages/UserProfile'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import NotFound from './pages/NotFound'
-
+import PhishingSimulation from "./pages/PhishingSimulation";
 export default function App() {
   return (
     <Routes>
@@ -22,10 +22,12 @@ export default function App() {
         <Route path="/risk" element={<Risk />} />
         <Route path="/solutions" element={<Solutions />} />
         <Route path="/contact" element={<Contact />} />
+      <Route path="/phishing-simulation" element={<PhishingSimulation />} /> 
         <Route path="/login" element={<UserLogin />} />
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/admin/login" element={<Login />} />
         <Route path="/admin/*" element={<Dashboard />} />
+  
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
